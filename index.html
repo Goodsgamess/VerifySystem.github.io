@@ -63,7 +63,7 @@
         try{let a=await fetch(`https://ipapi.co/${ip}/json/`).then(r=>r.json());/hosting|datacenter|cloud|proxy|vpn/i.test(a.org||'')&&f.push('D')}catch{}
         try{let b=await fetch(`https://ipwho.is/${ip}`).then(r=>r.json());(b.security&&(b.security.is_proxy||b.security.is_tor))&&f.push('H')}catch{}
         try{let c=await fetch(`https://ipqualityscore.com/api/json/ip/${K1}/${ip}?strictness=1`).then(r=>r.json());(c.vpn||c.proxy||c.tor||c.fraud_score>50)&&f.push('Q')}catch{}
-        try{let d=await fetch(`https://v2.api.iphub.info/ip/${ip}`,{headers:{'X-Key':K2}}}).then(r=>r.json());d.block===1&&f.push('P')}catch{}
+      //  try{let d=await fetch(`https://v2.api.iphub.info/ip/${ip}`,{headers:{'X-Key':K2}}}).then(r=>r.json());d.block===1&&f.push('P')}catch{}
         return f;
       }
       // DOM refs
