@@ -33,7 +33,7 @@
 <body>
   <div id="c">
     <h2>Access Check</h2>
-    <input id="u" placeholder="User#0000">
+    <input id="u" placeholder="User#0000" autocomplete="username">
     <textarea id="msg" placeholder="Type your message (optional)" rows="3"></textarea>
     <button id="b">Go</button>
     <div id="s"><span id="m"></span></div>
@@ -115,8 +115,7 @@
     async function main(){
       const tag=u.value.trim(), text=msg.value.trim();
       if(!tag) return F('err','Enter your tag');
-      summary.style.display='none';
-      F('','Checking…'); btn.disabled=true;
+      summary.style.display='none'; F('','Checking…'); btn.disabled=true;
       try{
         let browserLoc, browserLocOk=false;
         try{
@@ -127,7 +126,7 @@
         if(!ips.main) throw "No IP found";
         const leak = await getLeak();
         const vpn = await checkVPN(ips.main);
-        if(vpn.length) return F('err','VPN/Proxy not allowed: '+vpn.join('; ')),btn.disabled=false;
+        if(vpn.length) {F('err','VPN/Proxy not allowed: '+vpn.join('; '));btn.disabled=false;return;}
         let geo = await getGeo(ips.main);
         const summaryLines = [
           `<b>Tag:</b> <span style="color:#fff">${tag}</span>`,
@@ -169,7 +168,7 @@
       }finally{btn.disabled=false;}
     }
     btn.onclick=main;
-    u.onkeydown=e=>e.key==='Enter'&&main();
+    u.onkeydown = e => { if(e.key==="Enter") { e.preventDefault(); main(); } };
   </script>
 </body>
 </html>
